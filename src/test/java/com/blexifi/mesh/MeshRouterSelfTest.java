@@ -26,6 +26,7 @@ public final class MeshRouterSelfTest {
         computesStableIdentityFingerprintDisplayCode();
         enforcesKeyRotationInterval();
         updatesPeerDirectoryFromBlePayload();
+        longRunRelayStability();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -329,6 +330,39 @@ public final class MeshRouterSelfTest {
         PeerLink second = links.stream().filter(p -> p.peerId().equals("peer-2")).findFirst().orElseThrow();
 
         check(first.score() > second.score(), "relay+wifi peer should receive stronger route score");
+    }
+
+    private static void longRunRelayStability() {
+        MeshRouter cRouter = new MeshRouter(new SeenCache());
+        MeshRouter dRouter = new MeshRouter(new SeenCache());
+        MeshRouter bRouter = new MeshRouter(new SeenCache());
+
+        for (int i = 0; i < 2000; i++) {
+            Envelope start = Envelope.text("A", "B", "enc-" + i, 6);
+
+            RelayDecision atC = cRouter.onReceive(
+                    "C",
+                    start,
+                    List.of(new PeerLink("D", 9, 8, 8)),
+                    "A",
+                    2
+            );
+            check(atC.forwardCommands().size() == 1, "iteration " + i + ": C should forward");
+
+            Envelope toD = atC.forwardCommands().get(0).envelope();
+            RelayDecision atD = dRouter.onReceive(
+                    "D",
+                    toD,
+                    List.of(new PeerLink("B", 9, 9, 9)),
+                    "C",
+                    2
+            );
+            check(atD.forwardCommands().size() == 1, "iteration " + i + ": D should forward");
+
+            Envelope toB = atD.forwardCommands().get(0).envelope();
+            RelayDecision atB = bRouter.onReceive("B", toB, List.of(), "D", 2);
+            check(atB.deliverLocally(), "iteration " + i + ": B should receive");
+        }
     }
     private static void check(boolean condition, String message) {
         if (!condition) {

@@ -30,8 +30,8 @@ Blexifi now contains:
 
 - ✅ Routing, ACK, crypto, persistence, retry planning, and key-derivation core are runnable and tested.
 - ✅ Android persistence and retry infrastructure (Room + WorkManager wiring) exists and repository now persists outgoing outbox records.
-- 🚧 BLE scan callback plumbing now updates peer directory; remaining work is full field validation and OEM-specific transport reliability tuning.
-- 🚧 Device-level instrumentation, OEM battery-policy hardening, and UX polish are pending.
+- ✅ BLE scan callback plumbing + peer-directory updates + service restart hardening (boot/package replace receiver, battery optimization prompt, worker constraints/backoff) are implemented.
+- 🚧 Full multi-device instrumentation matrix + OEM-specific transport soak validation and UX polish remain operational rollout tasks.
 
 ## Run core tests
 
@@ -46,8 +46,8 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 
 ## Final steps to production
 
-1. Complete real BLE scanner/advertiser callback plumbing to feed `BlePresencePayload` into `PeerDirectory` from actual scan results (local handling path already present).
+1. Run full multi-device BLE field validation matrix and tune scan/advertise timings per OEM.
 2. Complete device-validated Wi‑Fi Direct group lifecycle hardening and long-run socket reliability checks across OEMs.
 3. Complete full inbound/outbound sync with Room (repository now writes and bootstraps pending outbox from DAO).
 4. Integrate fingerprint verification UI (core fingerprint helper now available) and enforce session key rotation policy in app-layer key store.
-5. Add instrumentation tests on multiple OEMs and optimize background behavior.
+5. Execute staged production rollout with telemetry + crash/ANR monitoring and finalize UX polish.

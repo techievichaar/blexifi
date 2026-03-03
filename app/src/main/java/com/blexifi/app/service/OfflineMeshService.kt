@@ -10,7 +10,10 @@ import android.content.Intent
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.IBinder
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.blexifi.app.transport.BleScannerPipeline
@@ -31,6 +34,10 @@ class OfflineMeshService : Service() {
         startForeground(NOTIFICATION_ID, buildNotification())
         initializeTransports()
         scheduleRetryWorker()
+        OemReliabilityPolicy.buildBatteryOptimizationIntent(this)?.let { intent ->
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { startActivity(intent) }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -47,7 +54,7 @@ class OfflineMeshService : Service() {
         handlePresencePayload(payload)
         bleScannerPipeline?.start()
         wifiDirectCoordinator?.discoverPeers()
-        return START_STICKY
+        return START_REDELIVER_INTENT
     }
 
     override fun onDestroy() {
@@ -71,7 +78,14 @@ class OfflineMeshService : Service() {
     }
 
     private fun scheduleRetryWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+            .setRequiresBatteryNotLow(true)
+            .build()
+
         val request = PeriodicWorkRequestBuilder<RetryOutboxWorker>(15, TimeUnit.MINUTES)
+            .setConstraints(constraints)
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
             .build()
 
         WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(

@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.blexifi.app.service.OfflineMeshService
+import com.blexifi.app.service.OemReliabilityPolicy
 
 class BootCompletedReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
+        val action = intent?.action ?: return
+        if (!OemReliabilityPolicy.bootActions().contains(action)) return
 
         val serviceIntent = Intent(context, OfflineMeshService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
