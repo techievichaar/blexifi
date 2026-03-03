@@ -3,6 +3,7 @@ package com.blexifi.mesh;
 import javax.crypto.SecretKey;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyPair;
 import java.util.List;
 
 public final class MeshRouterSelfTest {
@@ -19,6 +20,7 @@ public final class MeshRouterSelfTest {
         deliveryManagerBuildsRetryPlanForPendingMessages();
         fileMessageStorePersistsAndLoadsMessages();
         rejectsInvalidEnvelopeBeforeRouting();
+        derivesMatchingSessionKeysViaX25519();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -244,6 +246,22 @@ public final class MeshRouterSelfTest {
         RelayDecision decision = router.onReceive("C", invalid, List.of(new PeerLink("D", 1, 1, 1)), "A", 2);
         check("invalid_source".equals(decision.dropReason()), "invalid envelopes should be rejected early");
         check(decision.forwardCommands().isEmpty(), "invalid envelopes should not be forwarded");
+    }
+
+    private static void derivesMatchingSessionKeysViaX25519() {
+        KeyPair alice = KeyExchangeBox.generateIdentityKeyPair();
+        KeyPair bob = KeyExchangeBox.generateIdentityKeyPair();
+
+        var aliceSession = KeyExchangeBox.deriveAesKey(alice.getPrivate(), bob.getPublic());
+        var bobSession = KeyExchangeBox.deriveAesKey(bob.getPrivate(), alice.getPublic());
+
+        check(java.util.Arrays.equals(aliceSession.getEncoded(), bobSession.getEncoded()),
+                "derived session keys should match on both peers");
+
+        String plaintext = "mesh secret message";
+        String encrypted = CryptoBox.encryptToBase64(aliceSession, plaintext);
+        String decrypted = CryptoBox.decryptFromBase64(bobSession, encrypted);
+        check(plaintext.equals(decrypted), "derived session key should decrypt peer ciphertext");
     }
     private static void check(boolean condition, String message) {
         if (!condition) {
