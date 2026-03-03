@@ -25,6 +25,7 @@ public final class MeshRouterSelfTest {
         encodesAndDecodesSocketFrame();
         computesStableIdentityFingerprintDisplayCode();
         enforcesKeyRotationInterval();
+        updatesPeerDirectoryFromBlePayload();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -308,6 +309,26 @@ public final class MeshRouterSelfTest {
         check(!policy.shouldRotate(now - 1_000L, now), "fresh key should not rotate yet");
         check(policy.shouldRotate(now - (24 * 60 * 60 * 1000L), now), "interval boundary should rotate");
         check(policy.shouldRotate(now - (48 * 60 * 60 * 1000L), now), "older key should rotate");
+    }
+
+    private static void updatesPeerDirectoryFromBlePayload() {
+        PeerDirectory directory = new PeerDirectory();
+        long now = 1_000_000L;
+
+        directory.updateFromBlePayload(new BlePresencePayload("peer-1", 1, List.of("relay", "wifi_direct")), now);
+        directory.updateFromBlePayload(new BlePresencePayload("peer-2", 1, List.of("ble_only")), now - 20_000);
+
+        List<PeerDirectory.PeerRecord> peers = directory.listPeersNewestFirst();
+        check(peers.size() == 2, "directory should store discovered peers");
+        check(peers.get(0).peerId().equals("peer-1"), "newest peer should appear first");
+
+        List<PeerLink> links = directory.toPeerLinks("self", now);
+        check(links.size() == 2, "peer links should be produced for router");
+
+        PeerLink first = links.stream().filter(p -> p.peerId().equals("peer-1")).findFirst().orElseThrow();
+        PeerLink second = links.stream().filter(p -> p.peerId().equals("peer-2")).findFirst().orElseThrow();
+
+        check(first.score() > second.score(), "relay+wifi peer should receive stronger route score");
     }
     private static void check(boolean condition, String message) {
         if (!condition) {

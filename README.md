@@ -14,7 +14,7 @@ Blexifi now contains:
 - Scored neighbor forwarding with fanout and previous-hop filtering.
 - Relay decision output for deliver/drop/forward actions with envelope validation guardrails.
 - AES-GCM encryption utility for payload confidentiality plus X25519-based shared-session key derivation helper.
-- BLE presence payload codec (`BlePresencePayload`) for advertise/scan byte-format compatibility.
+- BLE presence payload codec (`BlePresencePayload`) for advertise/scan byte-format compatibility and `PeerDirectory` for peer-table/route-link scoring from presence updates.
 - Socket frame codec (`SocketFrameCodec`) for length-prefixed Wi‑Fi Direct payload transfer.
 - Delivery persistence abstraction (`MessageStore`) with in-memory and file-backed implementations for durable retries.
 - Delivery lifecycle manager with failure policy and exponential-backoff retry planning.
@@ -46,7 +46,7 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 
 ## Final steps to production
 
-1. Wire BLE scanner/advertiser callbacks to `BlePresencePayload` decode + peer table updates.
+1. Complete real BLE scanner/advertiser callback plumbing to feed `BlePresencePayload` into `PeerDirectory` from actual scan results (local handling path already present).
 2. Complete Wi‑Fi Direct group creation/discovery and connect sockets through `WifiDirectSocketManager`.
 3. Complete full inbound/outbound sync with Room (repository now writes and bootstraps pending outbox from DAO).
 4. Integrate fingerprint verification UI (core fingerprint helper now available) and enforce session key rotation policy in app-layer key store.

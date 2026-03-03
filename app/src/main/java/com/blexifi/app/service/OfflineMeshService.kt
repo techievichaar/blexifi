@@ -16,11 +16,13 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.blexifi.app.work.RetryOutboxWorker
 import com.blexifi.mesh.BlePresencePayload
+import com.blexifi.mesh.PeerDirectory
 import java.util.concurrent.TimeUnit
 
 class OfflineMeshService : Service() {
     private var bluetoothScanner: BluetoothLeScanner? = null
     private var wifiP2pManager: WifiP2pManager? = null
+    private val peerDirectory = PeerDirectory()
 
     override fun onCreate() {
         super.onCreate()
@@ -42,6 +44,9 @@ class OfflineMeshService : Service() {
         if (payload.isEmpty()) {
             stopSelf()
         }
+
+        // Local decode sanity and peer-table update path (same format used by scanner callback pipeline).
+        handlePresencePayload(payload)
         return START_STICKY
     }
 
@@ -51,6 +56,11 @@ class OfflineMeshService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun handlePresencePayload(raw: ByteArray) {
+        val parsed = BlePresencePayload.decode(raw)
+        peerDirectory.updateFromBlePayload(parsed, System.currentTimeMillis())
+    }
 
     private fun initializeTransports() {
         val adapter = BluetoothAdapter.getDefaultAdapter()
