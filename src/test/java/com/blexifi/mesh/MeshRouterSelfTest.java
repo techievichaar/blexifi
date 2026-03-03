@@ -1,5 +1,6 @@
 package com.blexifi.mesh;
 
+import javax.crypto.SecretKey;
 import java.util.List;
 
 public final class MeshRouterSelfTest {
@@ -8,6 +9,8 @@ public final class MeshRouterSelfTest {
         forwardsToTopScoringNeighborsAndDecrementsTtl();
         dropsDuplicateEnvelopes();
         simulatesAToBThroughCandDRelayChain();
+        simulatesAckRelayBackToSource();
+        encryptsAndDecryptsPayload();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -85,6 +88,44 @@ public final class MeshRouterSelfTest {
 
         check(atB.deliverLocally(), "B should receive envelope");
         check(atB.forwardCommands().isEmpty(), "B should not forward after delivery");
+    }
+
+    private static void simulatesAckRelayBackToSource() {
+        NodeProcessor bNode = new NodeProcessor("B", new MeshRouter(new SeenCache()));
+        NodeProcessor dNode = new NodeProcessor("D", new MeshRouter(new SeenCache()));
+        NodeProcessor cNode = new NodeProcessor("C", new MeshRouter(new SeenCache()));
+        NodeProcessor aNode = new NodeProcessor("A", new MeshRouter(new SeenCache()));
+
+        Envelope original = Envelope.text("A", "B", "cipher", 6);
+
+        NodeProcessResult atB = bNode.onIncoming(original, List.of(), "D");
+        check(atB.deliveredLocally(), "B should deliver original message");
+        check(atB.ackToSend() != null, "B should create ack for source");
+        Envelope ack = atB.ackToSend();
+        check(ack.isAck(), "generated envelope should be ack");
+
+        NodeProcessResult atD = dNode.onIncoming(ack, List.of(new PeerLink("C", 9, 9, 9)), "B");
+        check(atD.forwards().size() == 1, "D should relay ack to C");
+
+        Envelope ackToC = atD.forwards().get(0).envelope();
+        NodeProcessResult atC = cNode.onIncoming(ackToC, List.of(new PeerLink("A", 9, 9, 9)), "D");
+        check(atC.forwards().size() == 1, "C should relay ack to A");
+
+        Envelope ackToA = atC.forwards().get(0).envelope();
+        NodeProcessResult atA = aNode.onIncoming(ackToA, List.of(), "C");
+        check(atA.deliveredLocally(), "A should receive ack");
+        check(atA.ackToSend() == null, "Ack should not trigger another ack");
+    }
+
+    private static void encryptsAndDecryptsPayload() {
+        SecretKey key = CryptoBox.generateKey();
+        String plaintext = "hello offline mesh";
+
+        String encrypted = CryptoBox.encryptToBase64(key, plaintext);
+        String decrypted = CryptoBox.decryptFromBase64(key, encrypted);
+
+        check(!encrypted.equals(plaintext), "ciphertext should differ from plaintext");
+        check(plaintext.equals(decrypted), "decryption should restore plaintext");
     }
 
     private static void check(boolean condition, String message) {

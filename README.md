@@ -9,9 +9,11 @@ Blexifi now contains:
 
 ### Core routing engine (`src/main/java/com/blexifi/mesh`)
 - Envelope model with source/destination/TTL/hop count.
+- ACK envelope generation and ACK relay handling.
 - Duplicate suppression cache.
 - Scored neighbor forwarding with fanout and previous-hop filtering.
 - Relay decision output for deliver/drop/forward actions.
+- AES-GCM encryption utility for payload confidentiality.
 
 ### Android app scaffold (`app/`, enable with `BLEXIFI_ENABLE_ANDROID=1`)
 - `MainActivity` with a simple chat screen (target input, message input, send button, service start button).
@@ -20,15 +22,15 @@ Blexifi now contains:
 
 ## Current status
 
-- ✅ Routing logic and relay simulation are runnable and tested.
+- ✅ Routing logic, ACK flow simulation, and crypto utility are runnable and tested.
 - ✅ Android app structure is present and ready for transport integration.
 - 🚧 Actual BLE packet exchange + Wi‑Fi Direct socket transport still needs full implementation.
-- 🚧 Real end-to-end encryption/session management still pending.
+- 🚧 Real device-to-device E2E key agreement/session management still pending.
 
 ## Run core tests
 
 ```bash
-JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH gradle test
+JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH gradle meshSelfTest
 ```
 
 ## Target Android baseline
@@ -41,5 +43,5 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 1. Implement BLE advertise/scan payload format and parser.
 2. Add Wi‑Fi Direct connection orchestration + socket channels.
 3. Persist messages/peers in Room and recover pending outbox on restart.
-4. Add E2E encryption (identity keys + session keys + fingerprint verification).
+4. Add X25519 identity/session key exchange and fingerprint verification.
 5. Add instrumentation tests across real devices.

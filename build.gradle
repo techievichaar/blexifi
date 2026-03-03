@@ -7,3 +7,11 @@ java {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
+
+tasks.register('meshSelfTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs mesh routing self-tests including ACK relay and encryption checks.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.blexifi.mesh.MeshRouterSelfTest'
+    dependsOn tasks.testClasses
+}

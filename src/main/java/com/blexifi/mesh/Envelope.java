@@ -55,6 +55,25 @@ public final class Envelope {
         );
     }
 
+    public static Envelope ack(String sourceId, String destinationId, UUID ackForEnvelopeId, int ttl) {
+        return new Envelope(
+                UUID.randomUUID(),
+                sourceId,
+                destinationId,
+                Instant.now().toEpochMilli(),
+                ttl,
+                0,
+                false,
+                PayloadType.ACK,
+                "",
+                Objects.requireNonNull(ackForEnvelopeId)
+        );
+    }
+
+    public boolean isAck() {
+        return payloadType == PayloadType.ACK;
+    }
+
     public Envelope relayCopy() {
         return new Envelope(
                 envelopeId,
