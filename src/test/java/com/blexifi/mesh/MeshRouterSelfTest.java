@@ -1,6 +1,8 @@
 package com.blexifi.mesh;
 
 import javax.crypto.SecretKey;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 public final class MeshRouterSelfTest {
@@ -15,6 +17,7 @@ public final class MeshRouterSelfTest {
         deliveryManagerFailsAfterMaxAttempts();
         retryBackoffPolicyUsesExponentialDelay();
         deliveryManagerBuildsRetryPlanForPendingMessages();
+        fileMessageStorePersistsAndLoadsMessages();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -195,6 +198,30 @@ public final class MeshRouterSelfTest {
         check(second.retryDelayMs() == 1_000, "fresh message should get attempt1 delay");
         check(first.nextAttemptAtMs() == now + 2_000, "next attempt time should include computed delay");
         check(second.nextAttemptAtMs() == now + 1_000, "next attempt time should include computed delay");
+    }
+
+    private static void fileMessageStorePersistsAndLoadsMessages() {
+        try {
+            Path temp = Files.createTempFile("blexifi-store", ".db");
+
+            FileMessageStore store = new FileMessageStore(temp);
+            Envelope one = Envelope.text("A", "B", "cipher-one", 6);
+            Envelope two = Envelope.text("A", "C", "cipher-two", 6);
+
+            store.upsert(new StoredMessage(one.envelopeId, one.sourceId, one.destinationId, one.ciphertext, 0, DeliveryState.PENDING));
+            store.upsert(new StoredMessage(two.envelopeId, two.sourceId, two.destinationId, two.ciphertext, 1, DeliveryState.RELAYED));
+
+            FileMessageStore reopened = new FileMessageStore(temp);
+            check(reopened.findByEnvelopeId(one.envelopeId).isPresent(), "persisted message should be reloadable");
+            check(reopened.listPending().size() == 2, "pending list should include both persisted pending/relayed messages");
+
+            reopened.upsert(new StoredMessage(one.envelopeId, one.sourceId, one.destinationId, one.ciphertext, 2, DeliveryState.DELIVERED));
+            check(reopened.listPending().size() == 1, "delivered message should not stay in pending list");
+
+            Files.deleteIfExists(temp);
+        } catch (Exception e) {
+            throw new IllegalStateException("fileMessageStorePersistsAndLoadsMessages failed", e);
+        }
     }
     private static void check(boolean condition, String message) {
         if (!condition) {

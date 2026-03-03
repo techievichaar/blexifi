@@ -14,7 +14,7 @@ Blexifi now contains:
 - Scored neighbor forwarding with fanout and previous-hop filtering.
 - Relay decision output for deliver/drop/forward actions.
 - AES-GCM encryption utility for payload confidentiality.
-- Delivery persistence abstraction (`MessageStore`) with in-memory implementation.
+- Delivery persistence abstraction (`MessageStore`) with in-memory and file-backed implementations for durable local retries.
 - Delivery lifecycle manager that tracks pending/relayed/delivered/failed states, applies max-attempt failure policy, and builds exponential-backoff retry plans.
 
 ### Android app scaffold (`app/`, enable with `BLEXIFI_ENABLE_ANDROID=1`)
@@ -45,6 +45,6 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 
 1. Implement BLE advertise/scan payload format and parser.
 2. Add Wi‑Fi Direct connection orchestration + socket channels.
-3. Replace in-memory `MessageStore` with Room-backed persistence and recovery.
+3. Integrate `MessageStore` with Room in Android app and migrate from file-backed core persistence to Room entities.
 4. Add X25519 identity/session key exchange and fingerprint verification.
 5. Add instrumentation tests across real devices and OEM battery-policy checks.
