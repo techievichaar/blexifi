@@ -23,6 +23,11 @@ public final class MeshRouter {
             String previousHopPeerId,
             int fanout
     ) {
+        String validationError = EnvelopeValidator.validate(envelope);
+        if (validationError != null) {
+            return new RelayDecision(false, List.of(), validationError);
+        }
+
         if (seenCache.hasSeen(envelope.envelopeId)) {
             return new RelayDecision(false, List.of(), "duplicate");
         }

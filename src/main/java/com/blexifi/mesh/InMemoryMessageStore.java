@@ -11,17 +11,17 @@ public final class InMemoryMessageStore implements MessageStore {
     private final Map<UUID, StoredMessage> messages = new LinkedHashMap<>();
 
     @Override
-    public void upsert(StoredMessage message) {
+    public synchronized void upsert(StoredMessage message) {
         messages.put(message.envelopeId(), message);
     }
 
     @Override
-    public Optional<StoredMessage> findByEnvelopeId(UUID envelopeId) {
+    public synchronized Optional<StoredMessage> findByEnvelopeId(UUID envelopeId) {
         return Optional.ofNullable(messages.get(envelopeId));
     }
 
     @Override
-    public List<StoredMessage> listPending() {
+    public synchronized List<StoredMessage> listPending() {
         List<StoredMessage> pending = new ArrayList<>();
         for (StoredMessage message : messages.values()) {
             if (message.state() == DeliveryState.PENDING || message.state() == DeliveryState.RELAYED) {

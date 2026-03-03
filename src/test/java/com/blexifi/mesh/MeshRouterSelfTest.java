@@ -18,6 +18,7 @@ public final class MeshRouterSelfTest {
         retryBackoffPolicyUsesExponentialDelay();
         deliveryManagerBuildsRetryPlanForPendingMessages();
         fileMessageStorePersistsAndLoadsMessages();
+        rejectsInvalidEnvelopeBeforeRouting();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -222,6 +223,27 @@ public final class MeshRouterSelfTest {
         } catch (Exception e) {
             throw new IllegalStateException("fileMessageStorePersistsAndLoadsMessages failed", e);
         }
+    }
+
+    private static void rejectsInvalidEnvelopeBeforeRouting() {
+        MeshRouter router = new MeshRouter(new SeenCache());
+
+        Envelope invalid = new Envelope(
+                java.util.UUID.randomUUID(),
+                "",
+                "B",
+                System.currentTimeMillis(),
+                6,
+                0,
+                true,
+                PayloadType.TEXT,
+                "cipher",
+                null
+        );
+
+        RelayDecision decision = router.onReceive("C", invalid, List.of(new PeerLink("D", 1, 1, 1)), "A", 2);
+        check("invalid_source".equals(decision.dropReason()), "invalid envelopes should be rejected early");
+        check(decision.forwardCommands().isEmpty(), "invalid envelopes should not be forwarded");
     }
     private static void check(boolean condition, String message) {
         if (!condition) {

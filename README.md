@@ -12,7 +12,7 @@ Blexifi now contains:
 - ACK envelope generation and ACK relay handling.
 - Duplicate suppression cache.
 - Scored neighbor forwarding with fanout and previous-hop filtering.
-- Relay decision output for deliver/drop/forward actions.
+- Relay decision output for deliver/drop/forward actions with envelope validation guardrails (invalid source/destination/ACK metadata are dropped).
 - AES-GCM encryption utility for payload confidentiality.
 - Delivery persistence abstraction (`MessageStore`) with in-memory and file-backed implementations for durable local retries.
 - Delivery lifecycle manager that tracks pending/relayed/delivered/failed states, applies max-attempt failure policy, and builds exponential-backoff retry plans.
