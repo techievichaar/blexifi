@@ -3,7 +3,7 @@
 Blexifi now contains:
 
 1. A **mesh-routing core** (Java) for multi-hop forwarding logic.
-2. An **Android app module** (Kotlin) with chat UI + foreground offline mesh service scaffold.
+2. An **Android app module** (Kotlin) with chat UI + foreground offline mesh service, BLE scan pipeline, Wi‑Fi Direct coordinator, Room persistence, and retry worker.
 
 ## What is implemented
 
@@ -30,7 +30,7 @@ Blexifi now contains:
 
 - ✅ Routing, ACK, crypto, persistence, retry planning, and key-derivation core are runnable and tested.
 - ✅ Android persistence and retry infrastructure (Room + WorkManager wiring) exists and repository now persists outgoing outbox records.
-- 🚧 Full BLE advertise/scan runtime callbacks and Wi‑Fi Direct group negotiation are scaffolded but not yet integrated end-to-end.
+- 🚧 BLE scan callback plumbing now updates peer directory; remaining work is full field validation and OEM-specific transport reliability tuning.
 - 🚧 Device-level instrumentation, OEM battery-policy hardening, and UX polish are pending.
 
 ## Run core tests
@@ -47,7 +47,7 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 ## Final steps to production
 
 1. Complete real BLE scanner/advertiser callback plumbing to feed `BlePresencePayload` into `PeerDirectory` from actual scan results (local handling path already present).
-2. Complete Wi‑Fi Direct group creation/discovery and connect sockets through `WifiDirectSocketManager`.
+2. Complete device-validated Wi‑Fi Direct group lifecycle hardening and long-run socket reliability checks across OEMs.
 3. Complete full inbound/outbound sync with Room (repository now writes and bootstraps pending outbox from DAO).
 4. Integrate fingerprint verification UI (core fingerprint helper now available) and enforce session key rotation policy in app-layer key store.
 5. Add instrumentation tests on multiple OEMs and optimize background behavior.

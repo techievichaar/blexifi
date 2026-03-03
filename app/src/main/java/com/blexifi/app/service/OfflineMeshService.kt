@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.le.BluetoothLeScanner
 import android.content.Context
 import android.content.Intent
 import android.net.wifi.p2p.WifiP2pManager
@@ -14,15 +13,18 @@ import android.os.IBinder
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.blexifi.app.transport.BleScannerPipeline
+import com.blexifi.app.transport.WifiDirectCoordinator
 import com.blexifi.app.work.RetryOutboxWorker
 import com.blexifi.mesh.BlePresencePayload
 import com.blexifi.mesh.PeerDirectory
 import java.util.concurrent.TimeUnit
 
 class OfflineMeshService : Service() {
-    private var bluetoothScanner: BluetoothLeScanner? = null
     private var wifiP2pManager: WifiP2pManager? = null
     private val peerDirectory = PeerDirectory()
+    private var bleScannerPipeline: BleScannerPipeline? = null
+    private var wifiDirectCoordinator: WifiDirectCoordinator? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -32,27 +34,25 @@ class OfflineMeshService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // BLE advertise payload format (broadcast to nearby peers)
         val payload = BlePresencePayload(
             deviceId = "device-A",
             protocolVersion = 1,
             capabilities = listOf("relay", "ack", "wifi_direct"),
         ).encode()
 
-        // TODO: attach `payload` bytes to BLE advertise packet and start scan callbacks.
-        // TODO: initialize Wi‑Fi Direct discovery + group/socket orchestration.
         if (payload.isEmpty()) {
             stopSelf()
         }
 
-        // Local decode sanity and peer-table update path (same format used by scanner callback pipeline).
         handlePresencePayload(payload)
+        bleScannerPipeline?.start()
+        wifiDirectCoordinator?.discoverPeers()
         return START_STICKY
     }
 
     override fun onDestroy() {
+        bleScannerPipeline?.stop()
         super.onDestroy()
-        // TODO: stop scans, unregister listeners, close sockets.
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -64,8 +64,10 @@ class OfflineMeshService : Service() {
 
     private fun initializeTransports() {
         val adapter = BluetoothAdapter.getDefaultAdapter()
-        bluetoothScanner = adapter?.bluetoothLeScanner
+        bleScannerPipeline = BleScannerPipeline(adapter, peerDirectory)
+
         wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
+        wifiDirectCoordinator = wifiP2pManager?.let { WifiDirectCoordinator(this, it) }
     }
 
     private fun scheduleRetryWorker() {
