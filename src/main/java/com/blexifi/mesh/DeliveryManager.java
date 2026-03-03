@@ -6,10 +6,16 @@ import java.util.UUID;
 public final class DeliveryManager {
     private final MessageStore messageStore;
     private final int maxAttempts;
+    private final RetryBackoffPolicy retryBackoffPolicy;
 
     public DeliveryManager(MessageStore messageStore, int maxAttempts) {
+        this(messageStore, maxAttempts, new RetryBackoffPolicy(1_000, 60_000));
+    }
+
+    public DeliveryManager(MessageStore messageStore, int maxAttempts, RetryBackoffPolicy retryBackoffPolicy) {
         this.messageStore = messageStore;
         this.maxAttempts = maxAttempts;
+        this.retryBackoffPolicy = retryBackoffPolicy;
     }
 
     public StoredMessage onOutgoingCreated(Envelope envelope) {
@@ -52,5 +58,14 @@ public final class DeliveryManager {
 
     public List<StoredMessage> pendingMessages() {
         return messageStore.listPending();
+    }
+
+    public List<RetryPlanItem> buildRetryPlan(long nowMs) {
+        return messageStore.listPending().stream()
+                .map(message -> {
+                    long delay = retryBackoffPolicy.delayForAttempt(message.attempts() + 1);
+                    return new RetryPlanItem(message.envelopeId(), message.attempts(), delay, nowMs + delay);
+                })
+                .toList();
     }
 }

@@ -15,7 +15,7 @@ Blexifi now contains:
 - Relay decision output for deliver/drop/forward actions.
 - AES-GCM encryption utility for payload confidentiality.
 - Delivery persistence abstraction (`MessageStore`) with in-memory implementation.
-- Delivery lifecycle manager that tracks pending/relayed/delivered/failed states and applies max-attempt failure policy.
+- Delivery lifecycle manager that tracks pending/relayed/delivered/failed states, applies max-attempt failure policy, and builds exponential-backoff retry plans.
 
 ### Android app scaffold (`app/`, enable with `BLEXIFI_ENABLE_ANDROID=1`)
 - `MainActivity` with a simple chat screen (target input, message input, send button, service start button).

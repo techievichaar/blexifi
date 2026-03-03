@@ -13,6 +13,8 @@ public final class MeshRouterSelfTest {
         encryptsAndDecryptsPayload();
         deliveryManagerMarksDeliveredWhenAckArrives();
         deliveryManagerFailsAfterMaxAttempts();
+        retryBackoffPolicyUsesExponentialDelay();
+        deliveryManagerBuildsRetryPlanForPendingMessages();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -159,6 +161,40 @@ public final class MeshRouterSelfTest {
 
         StoredMessage second = manager.onForwardAttempt(outgoing.envelopeId);
         check(second.state() == DeliveryState.FAILED, "max attempts should mark failed");
+    }
+
+    private static void retryBackoffPolicyUsesExponentialDelay() {
+        RetryBackoffPolicy policy = new RetryBackoffPolicy(1_000, 8_000);
+        check(policy.delayForAttempt(1) == 1_000, "attempt1 should be base delay");
+        check(policy.delayForAttempt(2) == 2_000, "attempt2 should double");
+        check(policy.delayForAttempt(3) == 4_000, "attempt3 should double again");
+        check(policy.delayForAttempt(4) == 8_000, "attempt4 should cap at max");
+        check(policy.delayForAttempt(8) == 8_000, "later attempts should remain capped");
+    }
+
+    private static void deliveryManagerBuildsRetryPlanForPendingMessages() {
+        InMemoryMessageStore store = new InMemoryMessageStore();
+        DeliveryManager manager = new DeliveryManager(store, 5, new RetryBackoffPolicy(1_000, 10_000));
+
+        Envelope one = Envelope.text("A", "B", "c1", 6);
+        Envelope two = Envelope.text("A", "C", "c2", 6);
+
+        manager.onOutgoingCreated(one);
+        manager.onOutgoingCreated(two);
+        manager.onForwardAttempt(one.envelopeId); // one attempt => next should use attempt2 delay
+
+        long now = 100_000;
+        var plan = manager.buildRetryPlan(now);
+
+        check(plan.size() == 2, "retry plan should include two pending messages");
+
+        RetryPlanItem first = plan.stream().filter(p -> p.envelopeId().equals(one.envelopeId)).findFirst().orElseThrow();
+        RetryPlanItem second = plan.stream().filter(p -> p.envelopeId().equals(two.envelopeId)).findFirst().orElseThrow();
+
+        check(first.retryDelayMs() == 2_000, "attempted message should get attempt2 delay");
+        check(second.retryDelayMs() == 1_000, "fresh message should get attempt1 delay");
+        check(first.nextAttemptAtMs() == now + 2_000, "next attempt time should include computed delay");
+        check(second.nextAttemptAtMs() == now + 1_000, "next attempt time should include computed delay");
     }
     private static void check(boolean condition, String message) {
         if (!condition) {
