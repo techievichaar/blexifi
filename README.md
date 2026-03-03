@@ -25,6 +25,7 @@ Blexifi now contains:
 - `WifiDirectSocketManager` for socket server/client send-receive framing.
 - Room database (`AppDatabase`, DAOs, entities) for peers/messages.
 - WorkManager retry worker (`RetryOutboxWorker`) for pending outbox processing.
+- Health telemetry hooks (`HealthReporter`) for boot/service/retry counters and timestamps.
 
 ## Current status
 
@@ -51,3 +52,8 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 3. Complete full inbound/outbound sync with Room (repository now writes and bootstraps pending outbox from DAO).
 4. Integrate fingerprint verification UI (core fingerprint helper now available) and enforce session key rotation policy in app-layer key store.
 5. Execute staged production rollout with telemetry + crash/ANR monitoring and finalize UX polish.
+
+
+## Operations
+
+- OEM/device test matrix: `docs/oem_validation_matrix.md`

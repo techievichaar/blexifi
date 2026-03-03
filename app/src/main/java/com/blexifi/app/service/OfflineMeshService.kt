@@ -16,6 +16,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.blexifi.app.ops.HealthReporter
 import com.blexifi.app.transport.BleScannerPipeline
 import com.blexifi.app.transport.WifiDirectCoordinator
 import com.blexifi.app.work.RetryOutboxWorker
@@ -32,6 +33,8 @@ class OfflineMeshService : Service() {
     override fun onCreate() {
         super.onCreate()
         startForeground(NOTIFICATION_ID, buildNotification())
+        HealthReporter.increment(this, "service_on_create")
+        HealthReporter.setLastTimestamp(this, "service_last_create_ms", System.currentTimeMillis())
         initializeTransports()
         scheduleRetryWorker()
         OemReliabilityPolicy.buildBatteryOptimizationIntent(this)?.let { intent ->
@@ -52,12 +55,16 @@ class OfflineMeshService : Service() {
         }
 
         handlePresencePayload(payload)
+        HealthReporter.increment(this, "service_on_start")
+        HealthReporter.setLastTimestamp(this, "service_last_start_ms", System.currentTimeMillis())
         bleScannerPipeline?.start()
         wifiDirectCoordinator?.discoverPeers()
         return START_REDELIVER_INTENT
     }
 
     override fun onDestroy() {
+        HealthReporter.increment(this, "service_on_destroy")
+        HealthReporter.setLastTimestamp(this, "service_last_destroy_ms", System.currentTimeMillis())
         bleScannerPipeline?.stop()
         super.onDestroy()
     }
