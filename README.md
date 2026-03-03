@@ -29,7 +29,7 @@ Blexifi now contains:
 ## Current status
 
 - ✅ Routing, ACK, crypto, persistence, retry planning, and key-derivation core are runnable and tested.
-- ✅ Android persistence and retry infrastructure (Room + WorkManager wiring) now exists.
+- ✅ Android persistence and retry infrastructure (Room + WorkManager wiring) exists and repository now persists outgoing outbox records.
 - 🚧 Full BLE advertise/scan runtime callbacks and Wi‑Fi Direct group negotiation are scaffolded but not yet integrated end-to-end.
 - 🚧 Device-level instrumentation, OEM battery-policy hardening, and UX polish are pending.
 
@@ -48,6 +48,6 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 
 1. Wire BLE scanner/advertiser callbacks to `BlePresencePayload` decode + peer table updates.
 2. Complete Wi‑Fi Direct group creation/discovery and connect sockets through `WifiDirectSocketManager`.
-3. Connect `OfflineChatRepository` to Room DAOs for durable inbox/outbox state.
+3. Complete full inbound/outbound sync with Room (repository now writes and bootstraps pending outbox from DAO).
 4. Add fingerprint verification UI + key rotation policy for X25519 identities.
 5. Add instrumentation tests on multiple OEMs and optimize background behavior.

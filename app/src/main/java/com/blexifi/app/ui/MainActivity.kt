@@ -8,15 +8,23 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.blexifi.app.R
+import com.blexifi.app.data.OfflineChatRepository
+import com.blexifi.app.data.local.AppDatabase
 import com.blexifi.app.service.OfflineMeshService
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
-    private val viewModel = ChatViewModel()
+    private lateinit var viewModel: ChatViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val repository = OfflineChatRepository(
+            selfId = "device-A",
+            messageDao = AppDatabase.get(this).messageDao(),
+        )
+        viewModel = ChatViewModel(repository)
 
         val statusText = findViewById<TextView>(R.id.statusText)
         val targetInput = findViewById<EditText>(R.id.targetInput)
