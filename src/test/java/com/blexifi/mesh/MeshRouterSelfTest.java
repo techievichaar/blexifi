@@ -23,6 +23,8 @@ public final class MeshRouterSelfTest {
         derivesMatchingSessionKeysViaX25519();
         encodesAndDecodesBlePresencePayload();
         encodesAndDecodesSocketFrame();
+        computesStableIdentityFingerprintDisplayCode();
+        enforcesKeyRotationInterval();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -287,6 +289,25 @@ public final class MeshRouterSelfTest {
         byte[] decoded = com.blexifi.mesh.transport.SocketFrameCodec.decode(framed);
 
         check(java.util.Arrays.equals(payload, decoded), "socket frame codec should roundtrip payload");
+    }
+
+    private static void computesStableIdentityFingerprintDisplayCode() {
+        KeyPair pair = KeyExchangeBox.generateIdentityKeyPair();
+        String fingerprint = IdentityFingerprint.sha256Hex(pair.getPublic());
+        String displayCode = IdentityFingerprint.displayCode(pair.getPublic());
+
+        check(fingerprint.length() == 64, "fingerprint hex should be 64 chars for sha256");
+        check(displayCode.matches("[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}"),
+                "display code should be short verification format");
+    }
+
+    private static void enforcesKeyRotationInterval() {
+        KeyRotationPolicy policy = new KeyRotationPolicy(24 * 60 * 60 * 1000L);
+        long now = 1_000_000L;
+
+        check(!policy.shouldRotate(now - 1_000L, now), "fresh key should not rotate yet");
+        check(policy.shouldRotate(now - (24 * 60 * 60 * 1000L), now), "interval boundary should rotate");
+        check(policy.shouldRotate(now - (48 * 60 * 60 * 1000L), now), "older key should rotate");
     }
     private static void check(boolean condition, String message) {
         if (!condition) {

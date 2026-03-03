@@ -49,5 +49,5 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 1. Wire BLE scanner/advertiser callbacks to `BlePresencePayload` decode + peer table updates.
 2. Complete Wi‑Fi Direct group creation/discovery and connect sockets through `WifiDirectSocketManager`.
 3. Complete full inbound/outbound sync with Room (repository now writes and bootstraps pending outbox from DAO).
-4. Add fingerprint verification UI + key rotation policy for X25519 identities.
+4. Integrate fingerprint verification UI (core fingerprint helper now available) and enforce session key rotation policy in app-layer key store.
 5. Add instrumentation tests on multiple OEMs and optimize background behavior.
