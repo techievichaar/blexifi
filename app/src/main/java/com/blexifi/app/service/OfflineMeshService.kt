@@ -11,6 +11,12 @@ import android.content.Intent
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.IBinder
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.blexifi.app.work.RetryOutboxWorker
+import com.blexifi.mesh.BlePresencePayload
+import java.util.concurrent.TimeUnit
 
 class OfflineMeshService : Service() {
     private var bluetoothScanner: BluetoothLeScanner? = null
@@ -20,10 +26,22 @@ class OfflineMeshService : Service() {
         super.onCreate()
         startForeground(NOTIFICATION_ID, buildNotification())
         initializeTransports()
+        scheduleRetryWorker()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // TODO: start BLE scan/advertise and Wi‑Fi Direct discovery here.
+        // BLE advertise payload format (broadcast to nearby peers)
+        val payload = BlePresencePayload(
+            deviceId = "device-A",
+            protocolVersion = 1,
+            capabilities = listOf("relay", "ack", "wifi_direct"),
+        ).encode()
+
+        // TODO: attach `payload` bytes to BLE advertise packet and start scan callbacks.
+        // TODO: initialize Wi‑Fi Direct discovery + group/socket orchestration.
+        if (payload.isEmpty()) {
+            stopSelf()
+        }
         return START_STICKY
     }
 
@@ -38,6 +56,17 @@ class OfflineMeshService : Service() {
         val adapter = BluetoothAdapter.getDefaultAdapter()
         bluetoothScanner = adapter?.bluetoothLeScanner
         wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
+    }
+
+    private fun scheduleRetryWorker() {
+        val request = PeriodicWorkRequestBuilder<RetryOutboxWorker>(15, TimeUnit.MINUTES)
+            .build()
+
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            RETRY_WORK_NAME,
+            ExistingPeriodicWorkPolicy.UPDATE,
+            request,
+        )
     }
 
     private fun buildNotification(): Notification {
@@ -64,5 +93,6 @@ class OfflineMeshService : Service() {
     companion object {
         private const val CHANNEL_ID = "offline_mesh"
         private const val NOTIFICATION_ID = 101
+        private const val RETRY_WORK_NAME = "retry_outbox_worker"
     }
 }

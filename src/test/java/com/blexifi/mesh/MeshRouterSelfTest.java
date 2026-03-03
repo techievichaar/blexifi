@@ -21,6 +21,8 @@ public final class MeshRouterSelfTest {
         fileMessageStorePersistsAndLoadsMessages();
         rejectsInvalidEnvelopeBeforeRouting();
         derivesMatchingSessionKeysViaX25519();
+        encodesAndDecodesBlePresencePayload();
+        encodesAndDecodesSocketFrame();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -262,6 +264,29 @@ public final class MeshRouterSelfTest {
         String encrypted = CryptoBox.encryptToBase64(aliceSession, plaintext);
         String decrypted = CryptoBox.decryptFromBase64(bobSession, encrypted);
         check(plaintext.equals(decrypted), "derived session key should decrypt peer ciphertext");
+    }
+
+    private static void encodesAndDecodesBlePresencePayload() {
+        BlePresencePayload payload = new BlePresencePayload(
+                "device-42",
+                1,
+                List.of("relay", "wifi_direct", "ack")
+        );
+
+        byte[] encoded = payload.encode();
+        BlePresencePayload decoded = BlePresencePayload.decode(encoded);
+
+        check(decoded.deviceId().equals("device-42"), "BLE payload decode should preserve device id");
+        check(decoded.protocolVersion() == 1, "BLE payload decode should preserve protocol version");
+        check(decoded.capabilities().size() == 3, "BLE payload decode should preserve capabilities");
+    }
+
+    private static void encodesAndDecodesSocketFrame() {
+        byte[] payload = "hello-socket-frame".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] framed = com.blexifi.mesh.transport.SocketFrameCodec.encode(payload);
+        byte[] decoded = com.blexifi.mesh.transport.SocketFrameCodec.decode(framed);
+
+        check(java.util.Arrays.equals(payload, decoded), "socket frame codec should roundtrip payload");
     }
     private static void check(boolean condition, String message) {
         if (!condition) {
