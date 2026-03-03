@@ -1,42 +1,45 @@
 # Blexifi — Offline Bluetooth + Wi‑Fi Direct Chat (Android)
 
-Blexifi is an offline chat concept for Android where devices exchange messages without internet using BLE/Wi‑Fi Direct and relay messages through nearby phones.
+Blexifi now contains:
 
-## What is implemented now
+1. A **mesh-routing core** (Java) for multi-hop forwarding logic.
+2. An **Android app module** (Kotlin) with basic chat UI + foreground offline mesh service scaffold.
 
-This repository now includes a **working Kotlin mesh-routing core** (protocol models + forwarding engine + tests):
+## What is implemented
 
-- Relay envelope model with UUID, source, destination, TTL, hop count, payload type.
-- Duplicate suppression via a seen-cache.
-- TTL/hop-based forwarding logic.
-- Neighbor scoring and top-k next-hop fanout.
-- Unit tests including A→C→D→B relay simulation.
+### Core routing engine (`src/main/java/com/blexifi/mesh`)
+- Envelope model with source/destination/TTL/hop count.
+- Duplicate suppression cache.
+- Scored neighbor forwarding with fanout and previous-hop filtering.
+- Relay decision output for deliver/drop/forward actions.
 
-Code lives under:
+### Android app scaffold (`app/`, enable with `BLEXIFI_ENABLE_ANDROID=1`)
+- `MainActivity` with a simple chat screen (target input, message input, send button, service start button).
+- `OfflineMeshService` foreground service scaffold prepared for BLE scanner + Wi‑Fi P2P manager wiring.
+- `OfflineChatRepository` that bridges UI sends to mesh envelope generation/routing core.
 
-- `src/main/kotlin/com/blexifi/mesh`
-- `src/test/kotlin/com/blexifi/mesh`
+## Current status
 
-## Product requirements addressed
+- ✅ Routing logic and relay simulation are runnable and tested.
+- ✅ Android app structure is present and ready for transport integration.
+- 🚧 Actual BLE packet exchange + Wi‑Fi Direct socket transport still needs full implementation.
+- 🚧 Real end-to-end encryption/session management still pending.
 
-1. Use BLE + Wi‑Fi Direct to chat offline.
-2. Multi-hop relay when destination is out of direct range (e.g., A→C→D→B).
-3. Android first (practical baseline: `minSdk 26`, not all historical Android versions).
-
-## Run tests
+## Run core tests
 
 ```bash
-gradle test
+JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH gradle test
 ```
 
-## High-level Android architecture (next integration step)
+## Target Android baseline
 
-- Discovery layer: BLE advertiser/scanner for peer presence.
-- Transport layer: BLE control + Wi‑Fi Direct bulk socket transfer.
-- Routing layer: current `MeshRouter` core from this repo.
-- Storage layer: Room DB for outbox/inbox + dedupe + route hints.
+- `minSdk 26` (Android 8.0)
+- `targetSdk 34`
 
-## Protocol and architecture references
+## Next steps to reach production
 
-- `docs/architecture.md`
-- `docs/protocol.md`
+1. Implement BLE advertise/scan payload format and parser.
+2. Add Wi‑Fi Direct connection orchestration + socket channels.
+3. Persist messages/peers in Room and recover pending outbox on restart.
+4. Add E2E encryption (identity keys + session keys + fingerprint verification).
+5. Add instrumentation tests across real devices.
