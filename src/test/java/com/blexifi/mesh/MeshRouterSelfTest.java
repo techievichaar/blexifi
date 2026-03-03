@@ -11,6 +11,8 @@ public final class MeshRouterSelfTest {
         simulatesAToBThroughCandDRelayChain();
         simulatesAckRelayBackToSource();
         encryptsAndDecryptsPayload();
+        deliveryManagerMarksDeliveredWhenAckArrives();
+        deliveryManagerFailsAfterMaxAttempts();
         System.out.println("MeshRouterSelfTest: ALL TESTS PASSED");
     }
 
@@ -128,6 +130,36 @@ public final class MeshRouterSelfTest {
         check(plaintext.equals(decrypted), "decryption should restore plaintext");
     }
 
+
+    private static void deliveryManagerMarksDeliveredWhenAckArrives() {
+        InMemoryMessageStore store = new InMemoryMessageStore();
+        DeliveryManager manager = new DeliveryManager(store, 3);
+
+        Envelope outgoing = Envelope.text("A", "B", "cipher", 6);
+        manager.onOutgoingCreated(outgoing);
+        StoredMessage relayed = manager.onForwardAttempt(outgoing.envelopeId);
+        check(relayed.state() == DeliveryState.RELAYED, "message should be relayed after attempt");
+
+        Envelope ack = Envelope.ack("B", "A", outgoing.envelopeId, 6);
+        manager.onAckReceived(ack);
+
+        StoredMessage delivered = store.findByEnvelopeId(outgoing.envelopeId).orElseThrow();
+        check(delivered.state() == DeliveryState.DELIVERED, "ack should mark message delivered");
+    }
+
+    private static void deliveryManagerFailsAfterMaxAttempts() {
+        InMemoryMessageStore store = new InMemoryMessageStore();
+        DeliveryManager manager = new DeliveryManager(store, 2);
+
+        Envelope outgoing = Envelope.text("A", "Z", "cipher", 6);
+        manager.onOutgoingCreated(outgoing);
+
+        StoredMessage first = manager.onForwardAttempt(outgoing.envelopeId);
+        check(first.state() == DeliveryState.RELAYED, "first attempt should be relayed state");
+
+        StoredMessage second = manager.onForwardAttempt(outgoing.envelopeId);
+        check(second.state() == DeliveryState.FAILED, "max attempts should mark failed");
+    }
     private static void check(boolean condition, String message) {
         if (!condition) {
             throw new IllegalStateException("Test failed: " + message);

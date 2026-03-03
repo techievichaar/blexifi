@@ -14,6 +14,8 @@ Blexifi now contains:
 - Scored neighbor forwarding with fanout and previous-hop filtering.
 - Relay decision output for deliver/drop/forward actions.
 - AES-GCM encryption utility for payload confidentiality.
+- Delivery persistence abstraction (`MessageStore`) with in-memory implementation.
+- Delivery lifecycle manager that tracks pending/relayed/delivered/failed states and applies max-attempt failure policy.
 
 ### Android app scaffold (`app/`, enable with `BLEXIFI_ENABLE_ANDROID=1`)
 - `MainActivity` with a simple chat screen (target input, message input, send button, service start button).
@@ -22,10 +24,11 @@ Blexifi now contains:
 
 ## Current status
 
-- ✅ Routing logic, ACK flow simulation, and crypto utility are runnable and tested.
+- ✅ Routing logic, ACK flow simulation, crypto utility, and delivery-state manager are runnable and tested.
 - ✅ Android app structure is present and ready for transport integration.
 - 🚧 Actual BLE packet exchange + Wi‑Fi Direct socket transport still needs full implementation.
 - 🚧 Real device-to-device E2E key agreement/session management still pending.
+- 🚧 Room-backed persistent store + WorkManager retry worker for Android app are pending.
 
 ## Run core tests
 
@@ -42,6 +45,6 @@ JAVA_HOME=$HOME/.local/share/mise/installs/java/17.0.2 PATH=$JAVA_HOME/bin:$PATH
 
 1. Implement BLE advertise/scan payload format and parser.
 2. Add Wi‑Fi Direct connection orchestration + socket channels.
-3. Persist messages/peers in Room and recover pending outbox on restart.
+3. Replace in-memory `MessageStore` with Room-backed persistence and recovery.
 4. Add X25519 identity/session key exchange and fingerprint verification.
-5. Add instrumentation tests across real devices.
+5. Add instrumentation tests across real devices and OEM battery-policy checks.
